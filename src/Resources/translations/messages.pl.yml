@@ -1,0 +1,12 @@
+bpolnet:
+    payum_gateway_factory:
+        smart2pay: Smart2Pay Płatności
+    smart2pay_plugin:
+        api_key: Klucz API (api key)
+        site_id: ID strony (site id)
+        environment: Środowisko
+        production: Produkcyjne
+        sandbox: Sandbox
+        return_url: Prefix URLa powrotu z transakcji
+        return_url_help: Wpisz tylko domenę (np. https://example.com). Używanie tylko w środowisku Sandbox.
+    

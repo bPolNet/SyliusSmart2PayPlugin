@@ -1,0 +1,4 @@
+suites:
+    main:
+        namespace: BPolNet\SyliusSmart2PayPlugin
+        psr4_prefix: BPolNet\SyliusSmart2PayPlugin

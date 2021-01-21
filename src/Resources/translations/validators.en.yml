@@ -1,0 +1,6 @@
+bpolnet:
+    smart2pay_plugin:
+        api_key:
+            not_blank: API key cannot be blank
+        site_id:
+            not_blank: Site id cannot be blank

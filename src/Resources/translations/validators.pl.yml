@@ -1,0 +1,7 @@
+bpolnet:
+    smart2pay_plugin:
+        gateway_configuration:
+            api_key:
+                not_blank: Nie podano klucza API
+            site_id:
+                not_blank: Nie podano ID strony
