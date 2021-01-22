@@ -22,37 +22,52 @@ final class StatusAction implements ActionInterface
         $details = $payment->getDetails();
         $status = $details['status'] ?? Api::STATUS_UNKNOWN;
 
-        if ($status === Api::STATUS_SUCCESS) {
-            $request->markCaptured();
+        switch ($status) {
+            case Api::STATUS_NEW:
+                $request->markNew();
+                break;
 
-            return;
+            case Api::STATUS_SUSPENDED:
+                $request->markSuspended();
+                break;
+
+            case Api::STATUS_PENDING:
+                $request->markPending();
+                break;
+
+            case Api::STATUS_AUTHORIZED:
+                $request->markAuthorized();
+                break;
+
+            case Api::STATUS_EXPIRED:
+                $request->markExpired();
+                break;
+
+            case Api::STATUS_FAILED:
+                $request->markFailed();
+                break;
+
+            case Api::STATUS_CANCELLED:
+                $request->markCanceled();
+                break;
+
+            case Api::STATUS_CAPTURED: // no break here is intentional
+            case Api::STATUS_SUCCESS:
+                $request->markCaptured();
+                break;
+
+            case Api::STATUS_REFUNDED:
+                $request->markRefunded();
+                break;
+
+            case Api::STATUS_PAYEDOUT:
+                $request->markPayedout();
+                break;
+
+            case Api::STATUS_UNKNOWN:
+            default:
+                $request->markUnknown();
         }
-
-        if ($status === Api::STATUS_CANCELLED) {
-            $request->markCanceled();
-
-            return;
-        }
-
-        if ($status === Api::STATUS_FAILED) {
-            $request->markFailed();
-
-            return;
-        }
-
-        if ($status === Api::STATUS_PROCESSING) {
-            $request->markPending();
-
-            return;
-        }
-
-        if ($status === Api::STATUS_AUTHORIZED) {
-            $request->markAuthorized();
-
-            return;
-        }
-
-        $request->markUnknown();
     }
 
     public function supports($request): bool

@@ -16,7 +16,6 @@ final class BPolNetSyliusSmart2PayExtension extends Extension
     {
         $config = $this->processConfiguration($this->getConfiguration([], $container), $configs);
         $loader = new XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
-
         $loader->load('services.xml');
     }
 

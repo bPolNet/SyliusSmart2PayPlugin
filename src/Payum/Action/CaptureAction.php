@@ -4,6 +4,9 @@ declare(strict_types=1);
 namespace BPolNet\SyliusSmart2PayPlugin\Payum\Action;
 
 use BPolNet\SyliusSmart2PayPlugin\Payum\Api;
+use BPolNet\SyliusSmart2PayPlugin\Payum\Mapper\ApiParameters;
+use BPolNet\SyliusSmart2PayPlugin\Payum\Mapper\PaymentStatus;
+use BPolNet\SyliusSmart2PayPlugin\Traits\UpdatesPaymentDetails;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\ApiAwareInterface;
 use Payum\Core\ApiAwareTrait;
@@ -19,12 +22,22 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Gateway
 {
     use ApiAwareTrait;
     use GatewayAwareTrait;
+    use UpdatesPaymentDetails;
 
     /** @var Api */
     protected $api;
 
-    public function __construct()
+    /** @var ApiParameters */
+    private $apiParameters;
+
+    /** @var PaymentStatus */
+    private $paymentStatus;
+
+    public function __construct(ApiParameters $apiParameters, PaymentStatus $paymentStatus)
     {
+        $this->apiParameters = $apiParameters;
+        $this->paymentStatus = $paymentStatus;
+
         $this->apiClass = Api::class;
     }
 
@@ -42,7 +55,7 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Gateway
 
         $isReturnFromSmart2Pay = isset($httpRequest->query['data']) && isset($httpRequest->query['MerchantTransactionID']);
         if (!$isReturnFromSmart2Pay) {
-            $apiParameters = $this->prepareApiParameters($payment, $request);
+            $apiParameters = $this->apiParameters->prepare($payment, $this->api->getReturnUrl($request));
             $callParams = $this->prepareCallParameters();
             $finalizeParams = $this->prepareFinalizeParameters();
 
@@ -51,32 +64,27 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Gateway
 
             $noResponse = !is_array($response);
             if ($noResponse) {
-                $error = 'Unknown error during create payment.';
-                if (($errorArray = \S2P_SDK\S2P_SDK_Module::st_get_error()) && !empty($errorArray['display_error'])) {
-                    $error = $errorArray['display_error'];
-                }
-                $payment->setDetails([
-                    'status' => Api::STATUS_FAILED,
-                    'error' => $error
+                $this->updatePaymentDetails($payment, Api::STATUS_FAILED, Api::SOURCE_REQUEST, [
+                    'error' => \S2P_SDK\S2P_SDK_Module::st_get_error()
                 ]);
-
                 return;
             }
 
-            $createPaymentSuccessful = !empty($response['finalize_result']['should_redirect'])
+            $paymentCreated = !empty($response['finalize_result']['should_redirect'])
                 && !empty($response['finalize_result']['redirect_to']);
 
-            if (!$createPaymentSuccessful) {
-                $payment->setDetails([
-                    'status' => Api::STATUS_FAILED,
-                    'error' => 'Wrong response during create payment',
+            if (!$paymentCreated) {
+                $this->updatePaymentDetails($payment, Api::STATUS_FAILED, Api::SOURCE_REQUEST, [
+                    'error' => 'redirect_to not set on create payment response',
                     'response' => $response
                 ]);
 
                 return;
             }
 
-            $payment->setDetails($response);
+            $this->updatePaymentDetails($payment, Api::STATUS_PENDING, Api::SOURCE_REQUEST, [
+                'response' => $response
+            ]);
 
             // redirect to SmartToPay payment
             throw new HttpRedirect($response['finalize_result']['redirect_to']);
@@ -84,8 +92,12 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Gateway
 
         } else {
             // return from SmartToPay payment site
-            $details = $this->mapRequestToDetails($httpRequest);
-            $payment->setDetails($details);
+            $statusId = (int)($httpRequest->query['data'] ?? 0);
+            $status = $this->paymentStatus->mapFromStatusId($statusId);
+            $this->updatePaymentDetails($payment, $status, Api::SOURCE_RETURN, [
+                'status_id' => $statusId,
+                'request' => $httpRequest->query,
+            ]);
 
             // then we go to StatusAction
         }
@@ -96,75 +108,6 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Gateway
         return
             $request instanceof Capture &&
             $request->getModel() instanceof SyliusPaymentInterface;
-    }
-
-    /**
-     * @param SyliusPaymentInterface $payment
-     * @param Capture $request
-     * @return array
-     */
-    protected function prepareApiParameters(SyliusPaymentInterface $payment, Capture $request): array
-    {
-        $apiParameters = [];
-
-        // By default, API will check S2P_SDK_API_KEY, S2P_SDK_SITE_ID and S2P_SDK_ENVIRONMENT constats set in config.php
-        // If you want to override these constants (per request) uncomment lines below and provide values to override
-        // $apiParameters['api_key'] = $this->api->getConfig()['api_key'];
-        // $apiParameters['site_id'] = $this->api->getConfig()['site_id'];
-        // $apiParameters['environment'] = 'test'; // test or live
-
-        // !!! SmartCards note !!!
-        // If $apiParameters['method_params']['payment']['methodid'] is 6
-        // (SmartCards method - \S2P_SDK\S2P_SDK_Module::is_smartcards_method( $method_id )), you should normally send
-        // $apiParameters['method'] = 'cards';. However, since SDK v2.1.23 $apiParameters['method'] will be automatically
-        // changed to 'cards' in case 'payments' is provided
-
-        $apiParameters['method'] = 'payments';
-        $apiParameters['func'] = 'payment_init';
-
-        $apiParameters['get_variables'] = [];
-        $apiParameters['method_params'] = [
-            'payment' => [ // Mandatory
-                'merchanttransactionid' => $payment->getId(),
-                'amount' => $payment->getOrder()->getTotal(),
-                'currency' => $payment->getOrder()->getCurrencyCode(),
-                'returnurl' => $this->api->getReturnUrl($request),
-                'methodid' => null,
-                'siteid' => null,
-                'description' => $payment->getOrder()->getNumber(),
-                'customer' => [
-                    'merchantcustomerid' => '',
-                    'email' => $payment->getOrder()->getCustomer()->getEmail(),
-                    'firstname' => $payment->getOrder()->getCustomer()->getFirstName(),
-                    'lastname' => $payment->getOrder()->getCustomer()->getLastName(),
-                    'phone' => '',
-                    'company' => '',
-                ],
-                'billingaddress' => [
-                    'country' => $payment->getOrder()->getBillingAddress()->getCountryCode(),
-                    'city' => $payment->getOrder()->getBillingAddress()->getCity(),
-                    'zipcode' => $payment->getOrder()->getBillingAddress()->getPostcode(),
-                    'state' => $payment->getOrder()->getBillingAddress()->getProvinceName(),
-                    'street' => $payment->getOrder()->getBillingAddress()->getStreet(),
-                    'streetnumber' => '',
-                    'housenumber' => '',
-                    'houseextension' => '',
-                ],
-                'shippingaddress' => [
-                    'country' => $payment->getOrder()->getShippingAddress()->getCountryCode(),
-                    'city' => $payment->getOrder()->getShippingAddress()->getCity(),
-                    'zipcode' => $payment->getOrder()->getShippingAddress()->getPostcode(),
-                    'state' => $payment->getOrder()->getShippingAddress()->getProvinceName(),
-                    'street' => $payment->getOrder()->getShippingAddress()->getStreet(),
-                    'streetnumber' => '',
-                    'housenumber' => '',
-                    'houseextension' => '',
-                ],
-                'tokenlifetime' => 15,
-            ],
-        ];
-
-        return $apiParameters;
     }
 
     /**
@@ -194,62 +137,5 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Gateway
         $finalizeParams = [];
         $finalizeParams['redirect_now'] = false;
         return $finalizeParams;
-    }
-
-    private function mapRequestToDetails(GetHttpRequest $httpRequest): array
-    {
-        $details = [
-            'data' => $httpRequest->query['data'],
-            'paymentId' => $httpRequest->query['MerchantTransactionID'],
-            'statusId' => $httpRequest->query['StatusID'] ?? '',
-            'statusName' => $httpRequest->query['StatusName'] ?? '',
-        ];
-
-        if ($this->redirectionStatusSuccessful($details)) {
-            $status = Api::STATUS_SUCCESS;
-        } else if ($this->redirectionStatusCancelled($details)) {
-            $status = Api::STATUS_CANCELLED;
-        } else if ($this->redirectionStatusFailed($details)) {
-            $status = Api::STATUS_FAILED;
-        } else if ($this->redirectionStatusProcessing($details)) {
-            $status = Api::STATUS_PROCESSING;
-        } else if ($this->redirectionStatusAuthorized($details)) {
-            $status = Api::STATUS_AUTHORIZED;
-        } else {
-            $status = Api::STATUS_UNKNOWN;
-        }
-
-        $details['status'] = $status;
-
-        return $details;
-    }
-
-    private function redirectionStatusSuccessful(array $details): bool
-    {
-        return $details['data'] === '2';
-    }
-
-    private function redirectionStatusCancelled(array $details): bool
-    {
-        return $details['data'] === '3';
-    }
-
-    private function redirectionStatusFailed(array $details): bool
-    {
-        return $details['data'] === '7'
-            && !isset($details['StatusID'])
-            && !isset($details['StatusName']);
-    }
-
-    private function redirectionStatusProcessing(array $details): bool
-    {
-        return $details['data'] === '7'
-            && $details['StatusID'] === '7'
-            && $details['StatusName'] === 'PendingOnProvider';
-    }
-
-    private function redirectionStatusAuthorized(array $details): bool
-    {
-        return $details['data'] === '9';
     }
 }

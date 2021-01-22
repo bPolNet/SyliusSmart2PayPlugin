@@ -1,12 +1,43 @@
-<p align="center">
-    <a href="https://sylius.com" target="_blank">
-        <img src="https://demo.sylius.com/assets/shop/img/logo.png" />
-    </a>
-</p>
+# Plugin Documentation
 
-<h1 align="center">Plugin Skeleton</h1>
+## Instalation
 
-<p align="center">Skeleton for starting Sylius plugins.</p>
+```bash
+composer install bpolnet/sylius-smart2pay-plugin
+```
+
+Add plugin dependencies to your `config/bundles.php` file:
+
+```php
+return [
+    BPolNet\SyliusSmart2PayPlugin\BPolNetSyliusSmart2PayPlugin::class
+];
+```
+
+## Configuration
+
+1. Create an Smart2Pay account.
+
+2. Add a new REST Site. Notification URL later will be configured later.
+
+   ![01-01-autofilter.png](./docs/images/s2p.png)
+
+3. Add and configure Smart2Pay payment method in Sylius.
+
+   ![01-01-autofilter.png](./docs/images/sylius.png)
+
+    - provide api_key (nr 4 on the previous screen)
+    - provide site_id (nr 3 on the previous screen)
+    - select Environment: production or sandbox
+    - you can customize Return URL. Used only when developing.
+
+4. Configure Notification URL in Smart2Pay (see Smart2Pay image).
+    - provide notification URL as: https://your_domain.com/payments/notify/unsafe/{gateway_name}
+    - `{gateway_name}` is the same as the code of payment method (see Sylius image).
+
+
+
+# Sylius Documentation
 
 ## Documentation
 

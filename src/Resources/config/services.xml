@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<container xmlns="http://symfony.com/schema/dic/services" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+    <services>
+        <defaults public="true" />
+
+        <service id="bpolnet.smart2pay_plugin.gateway_factory" class="Payum\Core\Bridge\Symfony\Builder\GatewayFactoryBuilder">
+            <argument>BPolNet\SyliusSmart2PayPlugin\Payum\Smart2PayPaymentGatewayFactory</argument>
+            <tag name="payum.gateway_factory_builder" factory="smart2pay_payment"/>
+        </service>
+
+        <service id="BPolNet\SyliusSmart2PayPlugin\Form\Type\Smart2PayGatewayConfigurationType">
+            <tag name="sylius.gateway_configuration_type" type="smart2pay_payment" label="bpolnet.payum_gateway_factory.smart2pay"/>
+            <tag name="form.type"/>
+        </service>
+
+        <service id="BPolNet\SyliusSmart2PayPlugin\Payum\Mapper\ApiParameters"/>
+
+        <service id="BPolNet\SyliusSmart2PayPlugin\Payum\Mapper\PaymentStatus"/>
+
+        <service id="BPolNet\SyliusSmart2PayPlugin\Payum\Action\CaptureAction">
+            <argument type="service" id="BPolNet\SyliusSmart2PayPlugin\Payum\Mapper\ApiParameters"/>
+            <argument type="service" id="BPolNet\SyliusSmart2PayPlugin\Payum\Mapper\PaymentStatus"/>
+            <tag name="payum.action" factory="smart2pay_payment" alias="payum.action.capture" />
+        </service>
+
+        <service id="BPolNet\SyliusSmart2PayPlugin\Payum\Action\NotifyAction">
+            <argument type="service" id="sylius.repository.payment" />
+            <argument type="service" id="BPolNet\SyliusSmart2PayPlugin\Payum\Mapper\PaymentStatus" />
+            <tag name="payum.action" factory="smart2pay_payment" alias="payum.action.notify" />
+        </service>
+
+        <service id="BPolNet\SyliusSmart2PayPlugin\Payum\Action\StatusAction">
+            <tag name="payum.action" factory="smart2pay_payment" alias="payum.action.status" />
+        </service>
+    </services>
+</container>

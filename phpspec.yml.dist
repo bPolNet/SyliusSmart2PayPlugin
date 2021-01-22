@@ -2,3 +2,5 @@ suites:
     main:
         namespace: BPolNet\SyliusSmart2PayPlugin
         psr4_prefix: BPolNet\SyliusSmart2PayPlugin
+        spec_path: tests
+        src_path: src

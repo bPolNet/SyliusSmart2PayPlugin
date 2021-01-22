@@ -5,18 +5,29 @@ namespace BPolNet\SyliusSmart2PayPlugin\Payum;
 
 use InvalidArgumentException;
 use Payum\Core\Request\Generic;
+use Payum\Core\Request\GetHttpRequest;
 
 final class Api
 {
-    public const STATUS_SUCCESS = 'success';
-    public const STATUS_CANCELLED = 'canceled';
+    public const STATUS_NEW = 'new';
+    public const STATUS_SUCCESS = 'captured';
+    public const STATUS_CAPTURED = 'captured';
+    public const STATUS_SUSPENDED = 'suspended';
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_EXPIRED = 'expired';
     public const STATUS_FAILED = 'failed';
-    public const STATUS_PROCESSING = 'processing';
+    public const STATUS_CANCELLED = 'canceled';
     public const STATUS_AUTHORIZED = 'authorized';
+    public const STATUS_REFUNDED = 'refunded';
+    public const STATUS_PAYEDOUT = 'payedout';
     public const STATUS_UNKNOWN = 'unknown';
 
     public const ENVIRONMENT_LIVE = 'live';
     public const ENVIRONMENT_TEST = 'test';
+
+    public const SOURCE_REQUEST = 'request';
+    public const SOURCE_RETURN = 'return';
+    public const SOURCE_NOTIFICATION = 'notification';
 
     /** @var string */
     private $siteId;
@@ -51,9 +62,15 @@ final class Api
 
     private function configureSmart2PaySdk(): void
     {
-        define('S2P_SDK_SITE_ID', $this->siteId);
-        define('S2P_SDK_API_KEY', $this->apiKey);
-        define('S2P_SDK_ENVIRONMENT', $this->environment);
+        if (!defined('S2P_SDK_SITE_ID')) {
+            define('S2P_SDK_SITE_ID', $this->siteId);
+        }
+        if (!defined('S2P_SDK_API_KEY')) {
+            define('S2P_SDK_API_KEY', $this->apiKey);
+        }
+        if (!defined('S2P_SDK_ENVIRONMENT')) {
+            define('S2P_SDK_ENVIRONMENT', $this->environment);
+        }
     }
 
     public function getReturnUrl(Generic $request): string
@@ -69,7 +86,7 @@ final class Api
         return $returnUrl;
     }
 
-    public function authorizeRequest($request): bool
+    public function authorizeRequest(GetHttpRequest $request): bool
     {
         if (!isset($request->headers)) {
             return false;

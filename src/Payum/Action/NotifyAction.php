@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace BPolNet\SyliusSmart2PayPlugin\Payum\Action;
 
 use BPolNet\SyliusSmart2PayPlugin\Payum\Api;
+use BPolNet\SyliusSmart2PayPlugin\Payum\Mapper\PaymentStatus;
+use BPolNet\SyliusSmart2PayPlugin\Traits\UpdatesPaymentDetails;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\ApiAwareInterface;
 use Payum\Core\ApiAwareTrait;
@@ -20,6 +22,7 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayA
 {
     use ApiAwareTrait;
     use GatewayAwareTrait;
+    use UpdatesPaymentDetails;
 
     /** @var Api */
     protected $api;
@@ -27,9 +30,13 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayA
     /** @var PaymentRepositoryInterface */
     private $paymentRepository;
 
-    public function __construct(PaymentRepositoryInterface $paymentRepository)
+    /** @var PaymentStatus */
+    private $paymentStatus;
+
+    public function __construct(PaymentRepositoryInterface $paymentRepository, PaymentStatus $paymentStatusNotification)
     {
         $this->paymentRepository = $paymentRepository;
+        $this->paymentStatus = $paymentStatusNotification;
 
         $this->apiClass = Api::class;
     }
@@ -46,35 +53,19 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayA
 
         $paymentId = $this->extractPaymentId($httpRequest);
         $payment = $this->paymentRepository->find($paymentId);
-
         if (!$payment instanceof SyliusPaymentInterface) {
             throw new HttpResponse('Payment not found', 404);
         }
 
         $request->setModel($payment);
 
-        // notification statuses taken from
-        // https://docs.smart2pay.com/category/payments-api/payment-notification/payment-notification-format/
+        $statusId = $this->getStatusId($httpRequest);
+        $status = $this->paymentStatus->mapFromStatusId($this->getStatusId($httpRequest));
 
-        if ($this->notificationStatusSuccess($httpRequest)) {
-            $this->updatePaymentDetailsWithStatus($payment, Api::STATUS_SUCCESS);
-            throw new HttpResponse('OK', 204);
-        }
-
-        if ($this->notificationStatusOpen($httpRequest)) {
-            $this->updatePaymentDetailsWithStatus($payment, Api::STATUS_PROCESSING);
-            throw new HttpResponse('OK', 204);
-        }
-
-        if ($this->notificationStatusCaptured($httpRequest)) {
-            $this->updatePaymentDetailsWithStatus($payment, Api::STATUS_PROCESSING);
-            throw new HttpResponse('OK', 204);
-        }
-
-        if ($this->notificationStatusFailed($httpRequest)) {
-            $this->updatePaymentDetailsWithStatus($payment, Api::STATUS_FAILED);
-            throw new HttpResponse('OK', 204);
-        }
+        $this->updatePaymentDetails($payment, $status, Api::SOURCE_NOTIFICATION, [
+            'status_id' => $statusId,
+            'request' => json_decode($httpRequest->content, true),
+        ]);
 
         throw new HttpResponse('Could not handle notification', 400);
 
@@ -92,42 +83,9 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayA
         return $content['Payment']['MerchantTransactionID'] ?? '';
     }
 
-    private function updatePaymentDetailsWithStatus(SyliusPaymentInterface $payment, string $status): void
-    {
-        $details = $payment->getDetails();
-        $details['status'] = $status;
-        $payment->setDetails($details);
-    }
-
-    private function notificationStatusSuccess(GetHttpRequest $httpRequest): bool
+    private function getStatusId(GetHttpRequest $httpRequest): int
     {
         $content = json_decode($httpRequest->content, true);
-        $statusId = $content['Payment']['Status']['ID'] ?? null;
-
-        return (int)$statusId === 2;
-    }
-
-    private function notificationStatusOpen(GetHttpRequest $httpRequest): bool
-    {
-        $content = json_decode($httpRequest->content, true);
-        $statusId = $content['Payment']['Status']['ID'] ?? null;
-
-        return (int)$statusId === 1;
-    }
-
-    private function notificationStatusCaptured(GetHttpRequest $httpRequest): bool
-    {
-        $content = json_decode($httpRequest->content, true);
-        $statusId = $content['Payment']['Status']['ID'] ?? null;
-
-        return (int)$statusId === 11;
-    }
-
-    private function notificationStatusFailed(GetHttpRequest $httpRequest): bool
-    {
-        $content = json_decode($httpRequest->content, true);
-        $statusId = $content['Payment']['Status']['ID'] ?? null;
-
-        return (int)$statusId === 4;
+        return (int)($content['Payment']['Status']['ID'] ?? 0);
     }
 }
