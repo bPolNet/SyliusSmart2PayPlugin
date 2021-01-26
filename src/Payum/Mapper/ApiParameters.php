@@ -37,8 +37,8 @@ class ApiParameters
         $apiParameters['method_params'] = [
             'payment' => [ // Mandatory
                 'merchanttransactionid' => $payment->getId(),
-                'amount' => $order->getTotal(),
-                'currency' => $order->getCurrencyCode(),
+                'amount' => $payment->getAmount(),
+                'currency' => $payment->getCurrencyCode(),
                 'returnurl' => $returnUrl,
                 'methodid' => null,
                 'siteid' => null,

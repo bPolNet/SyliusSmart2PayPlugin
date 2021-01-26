@@ -82,8 +82,10 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Gateway
                 return;
             }
 
+            $s2pPaymentId = $response['call_result']['payment']['id'] ?? '';
             $this->updatePaymentDetails($payment, Api::STATUS_PENDING, Api::SOURCE_REQUEST, [
-                'response' => $response
+                'response' => $response,
+                's2p_payment_id' => $s2pPaymentId,
             ]);
 
             // redirect to SmartToPay payment
