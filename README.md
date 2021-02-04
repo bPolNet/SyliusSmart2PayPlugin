@@ -2,8 +2,18 @@
 
 ## Instalation
 
+Add `auth.json` file to your project root folder with previously generated github token.
+```
+{
+  "github-oauth": {
+    "github.com": "your_github_token_here"
+  }
+}
+```
+
+Then run
 ```bash
-composer install bpolnet/sylius-smart2pay-plugin
+composer require bpolnet/sylius-smart2pay-plugin
 ```
 
 Add plugin dependencies to your `config/bundles.php` file:
