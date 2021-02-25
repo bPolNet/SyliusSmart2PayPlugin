@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace BPolNet\SyliusSmart2PayPlugin\Payum\Mapper;
 
+use BPolNet\SyliusSmart2PayPlugin\Payum\PaymentMethod;
 use Sylius\Component\Core\Model\PaymentInterface as SyliusPaymentInterface;
 
 class ApiParameters
@@ -43,6 +44,11 @@ class ApiParameters
                 'methodid' => null,
                 'siteid' => null,
                 'description' => $order->getNumber(),
+//                'ExcludeMethodIDs' => [
+//                    // this could be moved to configuration page (see Smart2PayGatewayConfigurationType.php)
+//                    // it does not work in S2P sandbox. Need to contact with S2P
+//                    PaymentMethod::TRUSTLY,
+//                ],
                 'customer' => [
                     'merchantcustomerid' => $customer ? $customer->getId() : '',
                     'email' => $customer ? $customer->getEmail() : '',
