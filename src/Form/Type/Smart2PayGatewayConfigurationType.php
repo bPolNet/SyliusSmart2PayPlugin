@@ -44,6 +44,13 @@ class Smart2PayGatewayConfigurationType extends AbstractType
                 ],
                 'label' => 'bpolnet.smart2pay_plugin.environment',
             ])
+            ->add('payment_method', ChoiceType::class, [
+                'choices' => [
+                    'bpolnet.smart2pay_plugin.credit_cards' => Api::METHOD_CARDS,
+                    'bpolnet.smart2pay_plugin.payments' => Api::METHOD_PAYMENTS
+                ],
+                'label' => 'bpolnet.smart2pay_plugin.payment_method',
+            ])
             ->add('return_url', TextType::class, [
                 'label' => 'bpolnet.smart2pay_plugin.return_url',
                 'required' => false,

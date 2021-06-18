@@ -35,7 +35,7 @@ class ApiParametersSpec extends ObjectBehavior
         $customer->getLastName()->willReturn('Last');
         $customer->getPhoneNumber()->willReturn('123456789');
 
-        $this->prepare($payment, 'http://example.com/return_url')
+        $this->prepare($payment, 'http://example.com/return_url', 'payments')
             ->shouldBeArray();
     }
 }

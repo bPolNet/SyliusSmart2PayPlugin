@@ -14,7 +14,8 @@ class ApiSpec extends ObjectBehavior
             '99999',
             '1234567890abcdef',
             '',
-            Api::ENVIRONMENT_LIVE
+            Api::ENVIRONMENT_LIVE,
+            API::METHOD_PAYMENTS
         );
     }
 
@@ -52,5 +53,10 @@ class ApiSpec extends ObjectBehavior
             'authorization' => [ 'wrong_authorization_header' ]
         ];
         $this->authorizeRequest($httpRequest)->shouldReturn(false);
+    }
+
+    function it_returns_payment_method(): void
+    {
+        $this->getPaymentMethod()->shouldReturn(API::METHOD_PAYMENTS);
     }
 }

@@ -9,3 +9,6 @@ bpolnet:
         sandbox: Sandbox
         return_url: Prefix of Return URL
         return_url_help: Provide only domain (ex. https://example.com) . Used only in Sandbox environment.
+        payment_method: Payment method
+        credit_cards: Credit cards
+        payments: Payments
