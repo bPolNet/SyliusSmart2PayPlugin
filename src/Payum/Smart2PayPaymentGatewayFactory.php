@@ -23,12 +23,18 @@ final class Smart2PayPaymentGatewayFactory extends GatewayFactory
 
             $config->defaults($config['payum.default_options']);
 
-            $config['payum.required_options'] = ['api_key', 'site_id', 'environment'];
+            $config['payum.required_options'] = ['api_key', 'site_id', 'environment', 'payment_method'];
 
             $config['payum.api'] = function (ArrayObject $config) {
                 $config->validateNotEmpty($config['payum.required_options']);
 
-                return new Api($config['site_id'], $config['api_key'], $config['return_url'], $config['environment']);
+                return new Api(
+                    $config['site_id'],
+                    $config['api_key'],
+                    $config['return_url'],
+                    $config['environment'],
+                    $config['payment_method']
+                );
             };
         }
     }

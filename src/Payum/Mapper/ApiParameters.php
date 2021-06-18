@@ -8,7 +8,7 @@ use Sylius\Component\Core\Model\PaymentInterface as SyliusPaymentInterface;
 
 class ApiParameters
 {
-    public function prepare(SyliusPaymentInterface $payment, string $returnUrl): array
+    public function prepare(SyliusPaymentInterface $payment, string $returnUrl, string $paymentMethod): array
     {
         $apiParameters = [];
 
@@ -24,7 +24,7 @@ class ApiParameters
         // $apiParameters['method'] = 'cards';. However, since SDK v2.1.23 $apiParameters['method'] will be automatically
         // changed to 'cards' in case 'payments' is provided
 
-        $apiParameters['method'] = 'payments';
+        $apiParameters['method'] = $paymentMethod;
         $apiParameters['func'] = 'payment_init';
 
         $apiParameters['get_variables'] = [];

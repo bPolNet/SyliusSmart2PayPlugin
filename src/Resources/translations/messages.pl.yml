@@ -9,4 +9,6 @@ bpolnet:
         sandbox: Sandbox
         return_url: Prefix URLa powrotu z transakcji
         return_url_help: Wpisz tylko domenę (np. https://example.com). Używanie tylko w środowisku Sandbox.
-    
+        payment_method: Sposób płatności
+        cards: Karty płatnicze
+        payments: Płatności

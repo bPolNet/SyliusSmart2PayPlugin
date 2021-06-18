@@ -55,7 +55,7 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Gateway
 
         $isReturnFromSmart2Pay = isset($httpRequest->query['data']) && isset($httpRequest->query['MerchantTransactionID']);
         if (!$isReturnFromSmart2Pay) {
-            $apiParameters = $this->apiParameters->prepare($payment, $this->api->getReturnUrl($request));
+            $apiParameters = $this->apiParameters->prepare($payment, $this->api->getReturnUrl($request), $this->api->getPaymentMethod());
             $callParams = $this->prepareCallParameters();
             $finalizeParams = $this->prepareFinalizeParameters();
 
