@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace BPolNet\SyliusSmart2PayPlugin\Payum\Mapper;
 
+use BPolNet\SyliusSmart2PayPlugin\Payum\Api;
 use BPolNet\SyliusSmart2PayPlugin\Payum\PaymentMethod;
 use Sylius\Component\Core\Model\PaymentInterface as SyliusPaymentInterface;
 
@@ -80,6 +81,10 @@ class ApiParameters
                 'tokenlifetime' => 15,
             ],
         ];
+
+        if ($paymentMethod === Api::METHOD_CARDS) {
+            $apiParameters['method_params']['payment']['capture'] = true;
+        }
 
         return $apiParameters;
     }
