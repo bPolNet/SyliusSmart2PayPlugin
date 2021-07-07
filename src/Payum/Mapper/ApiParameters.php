@@ -84,6 +84,7 @@ class ApiParameters
 
         if ($paymentMethod === Api::METHOD_CARDS) {
             $apiParameters['method_params']['payment']['capture'] = true;
+            $apiParameters['method_params']['payment']['3dsecure'] = true;
         }
 
         return $apiParameters;
