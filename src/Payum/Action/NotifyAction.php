@@ -51,7 +51,8 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayA
             throw new HttpResponse('Authorization failed', 403);
         }
 
-        $paymentId = $this->extractPaymentId($httpRequest);
+        $requestContent = $this->getDecodedRequestContent($httpRequest);
+        $paymentId = $this->extractPaymentId($requestContent);
         $payment = $this->paymentRepository->find($paymentId);
         if (!$payment instanceof SyliusPaymentInterface) {
             throw new HttpResponse('Payment not found', 404);
@@ -59,15 +60,17 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayA
 
         $request->setModel($payment);
 
-        $statusId = $this->getStatusId($httpRequest);
-        $status = $this->paymentStatus->mapFromStatusId($this->getStatusId($httpRequest));
+        $statusId = $this->extractStatusId($requestContent);
+        $status = $this->paymentStatus->mapFromStatusId($statusId);
 
         $this->updatePaymentDetails($payment, $status, Api::SOURCE_NOTIFICATION, [
             'status_id' => $statusId,
             'request' => json_decode($httpRequest->content, true),
         ]);
 
-        throw new HttpResponse('Could not handle notification', 400);
+        if (!$this->hasValidAmountAndCurrency($payment, $requestContent)) {
+            throw new HttpResponse('Invalid payment amount or currency', 400);
+        }
 
         // then we go to StatusAction
     }
@@ -77,15 +80,36 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayA
         return $request instanceof Notify;
     }
 
-    private function extractPaymentId(GetHttpRequest $httpRequest): string
+    private function getDecodedRequestContent(GetHttpRequest $httpRequest): array
     {
-        $content = json_decode($httpRequest->content, true);
-        return $content['Payment']['MerchantTransactionID'] ?? '';
+        return json_decode($httpRequest->content, true);
     }
 
-    private function getStatusId(GetHttpRequest $httpRequest): int
+    private function hasValidAmountAndCurrency(SyliusPaymentInterface $payment, array $requestContent):bool
     {
-        $content = json_decode($httpRequest->content, true);
-        return (int)($content['Payment']['Status']['ID'] ?? 0);
+        return $payment->getCurrencyCode() === $this->extractCurrency($requestContent) &&
+            $payment->getAmount() === $this->extractAmount($requestContent);
+    }
+
+    private function extractCurrency(array $requestContent): string
+    {
+        return $requestContent['Payment']['Currency'] ?? '';
+    }
+
+    private function extractAmount(array $requestContent): int
+    {
+        return (int)($requestContent['Payment']['Amount'] ?? 0);
+    }
+
+    private function extractPaymentId(array $requestContent): string
+    {
+        $merchantTransactionId = $requestContent['Payment']['MerchantTransactionID'] ?? '';
+
+        return explode('-', $merchantTransactionId)[1] ?? '';
+    }
+
+    private function extractStatusId(array $requestContent): int
+    {
+        return (int)($requestContent['Payment']['Status']['ID'] ?? 0);
     }
 }
