@@ -79,6 +79,7 @@ class ApiParameters
                     'houseextension' => '',
                 ],
                 'tokenlifetime' => 15,
+                'language' => str_replace('_', '-', $order->getLocaleCode())
             ],
         ];
 
