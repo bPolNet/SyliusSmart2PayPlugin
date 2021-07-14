@@ -1,7 +1,7 @@
 {
     "name": "bpolnet/sylius-smart2pay-plugin",
     "type": "sylius-plugin",
-    "version": "v1.1.3",
+    "version": "v1.1.4",
     "keywords": ["sylius", "sylius-plugin"],
     "description": "Smart2Pay payment plugin for Sylius application.",
     "license": "MIT",
