@@ -27,6 +27,7 @@
         <service id="BPolNet\SyliusSmart2PayPlugin\Payum\Action\NotifyAction">
             <argument type="service" id="sylius.repository.payment" />
             <argument type="service" id="BPolNet\SyliusSmart2PayPlugin\Payum\Mapper\PaymentStatus" />
+            <argument type="service" id="logger"/>
             <tag name="payum.action" factory="smart2pay_payment" alias="payum.action.notify" />
         </service>
 

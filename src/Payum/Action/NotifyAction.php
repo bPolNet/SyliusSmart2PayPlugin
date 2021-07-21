@@ -15,6 +15,7 @@ use Payum\Core\GatewayAwareTrait;
 use Payum\Core\Reply\HttpResponse;
 use Payum\Core\Request\GetHttpRequest;
 use Payum\Core\Request\Notify;
+use Psr\Log\LoggerInterface;
 use Sylius\Component\Core\Model\PaymentInterface as SyliusPaymentInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 
@@ -33,10 +34,18 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayA
     /** @var PaymentStatus */
     private $paymentStatus;
 
-    public function __construct(PaymentRepositoryInterface $paymentRepository, PaymentStatus $paymentStatusNotification)
+    /** @var LoggerInterface */
+    private $logger;
+
+    public function __construct(
+        PaymentRepositoryInterface $paymentRepository,
+        PaymentStatus $paymentStatusNotification,
+        LoggerInterface $logger
+    )
     {
         $this->paymentRepository = $paymentRepository;
         $this->paymentStatus = $paymentStatusNotification;
+        $this->logger = $logger;
 
         $this->apiClass = Api::class;
     }
@@ -48,14 +57,16 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayA
         $this->gateway->execute($httpRequest = new GetHttpRequest());
 
         if (!$this->api->authorizeRequest($httpRequest)) {
-            throw new HttpResponse('Authorization failed', 403);
+            $this->logger->error('Smart2Pay notification authorization failed');
+            throw new HttpResponse(null, 204);
         }
 
         $requestContent = $this->getDecodedRequestContent($httpRequest);
         $paymentId = $this->extractPaymentId($requestContent);
         $payment = $this->paymentRepository->find($paymentId);
         if (!$payment instanceof SyliusPaymentInterface) {
-            throw new HttpResponse('Payment not found', 404);
+            $this->logger->error(sprintf('Smart2Pay payment "%s" not found', $paymentId));
+            throw new HttpResponse(null, 204);
         }
 
         $request->setModel($payment);
@@ -69,7 +80,8 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayA
         ]);
 
         if (!$this->hasValidAmountAndCurrency($payment, $requestContent)) {
-            throw new HttpResponse('Invalid payment amount or currency', 400);
+            $this->logger->error(sprintf('Invalid payment amount or currency', $paymentId));
+            throw new HttpResponse(null, 204);
         }
 
         // then we go to StatusAction
@@ -105,7 +117,7 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayA
     {
         $merchantTransactionId = $requestContent['Payment']['MerchantTransactionID'] ?? '';
 
-        return explode('-', $merchantTransactionId)[1] ?? '';
+        return explode('-', $merchantTransactionId)[1] ?? $merchantTransactionId;
     }
 
     private function extractStatusId(array $requestContent): int
