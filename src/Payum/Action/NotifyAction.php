@@ -57,7 +57,7 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayA
         $this->gateway->execute($httpRequest = new GetHttpRequest());
 
         if (!$this->api->authorizeRequest($httpRequest)) {
-            $this->logger->error('Smart2Pay notification authorization failed');
+            $this->logger->error('Smart2Pay: notification authorization failed');
             throw new HttpResponse(null, 204);
         }
 
@@ -65,7 +65,7 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayA
         $paymentId = $this->extractPaymentId($requestContent);
         $payment = $this->paymentRepository->find($paymentId);
         if (!$payment instanceof SyliusPaymentInterface) {
-            $this->logger->error(sprintf('Smart2Pay payment "%s" not found', $paymentId));
+            $this->logger->error(sprintf('Smart2Pay: payment "%s" not found', $paymentId));
             throw new HttpResponse(null, 204);
         }
 
@@ -80,7 +80,7 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayA
         ]);
 
         if (!$this->hasValidAmountAndCurrency($payment, $requestContent)) {
-            $this->logger->error(sprintf('Invalid payment amount or currency', $paymentId));
+            $this->logger->error('Smart2Pay: invalid payment amount or currency');
             throw new HttpResponse(null, 204);
         }
 
