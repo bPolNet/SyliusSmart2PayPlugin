@@ -22,6 +22,8 @@ class ApiParametersSpec extends ObjectBehavior
     ): void
     {
         $payment->getOrder()->willReturn($order)->shouldBeCalledOnce();
+        $payment->getAmount()->willReturn(1);
+        $payment->getCurrencyCode()->willReturn('EUR');
         $order->getBillingAddress()->willReturn(null);
         $order->getShippingAddress()->willReturn(null);
         $payment->getId()->willReturn(1);
@@ -29,6 +31,7 @@ class ApiParametersSpec extends ObjectBehavior
         $order->getCurrencyCode()->willReturn('EUR');
         $order->getNumber()->willReturn('0000001');
         $order->getCustomer()->willReturn($customer);
+        $order->getLocaleCode()->willReturn('pl_PL');
         $customer->getId()->willReturn(2);
         $customer->getEmail()->willReturn('email@example.com');
         $customer->getFirstName()->willReturn('First');
