@@ -53,7 +53,7 @@ final class StatusAction implements ActionInterface
 
             case Api::STATUS_CAPTURED: // no break here is intentional
             case Api::STATUS_SUCCESS:
-                $request->markCaptured();
+                $request->markPending();
                 break;
 
             case Api::STATUS_REFUNDED:
